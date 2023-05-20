@@ -1,0 +1,699 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ vm_name | safe }}</title>
+    <link href="/files/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body style="background-color: #26292d;color: white;">
+    <div style="min-height: 90%;">
+        {{ nav | safe }}
+        <div class="container text-center">
+            <div class="row">
+                <div class="col rounded-3 shadow" style="background-color: #1b1d21;padding: 10px;">
+                    <h4 id="on"></h4>
+                    <p id="time"></p>
+                    <div id="memory-div">
+                        <a id="memory-display">Memory:</a>
+                        <div class="progress">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: 0%;" id="memory"></div>
+                        </div>
+                        <br>
+                    </div>
+                    <div id="cpu-div">
+                        <a>CPU:</a>
+                        <div class="progress">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: 0%;" id="cpu"></div>
+                        </div>
+                        <br>
+                    </div>
+                    <button onclick="edit()" class="btn btn-success disabled-while-running" disabled>Edit</button>
+                    <button onclick="deleteVM()" class="btn btn-danger disabled-while-running" disabled>Delete VM</button>
+                    <br><br>
+                    <p>Power Options:</p>
+                    <button onclick="start()" class="btn btn-primary" id="start-button">Start</button>
+                    <button onclick="stop()" class="btn btn-warning" id="stop-button">Shutdown</button>
+                    <button onclick="reboot()" class="btn btn-warning" id="reboot-button">Reboot</button>
+                    <br><br>
+                    <p>Advanced Power Options:</p>
+                    <button onclick="reboot(true)" class="btn btn-danger" id="reset-button">Force
+                        Reboot</button>
+                    <button onclick="stop(true)" class="btn btn-danger" id="destroy-button">Force
+                        Shutdown</button>
+                </div>
+                <div class="col">
+                    <div class="rounded-3 shadow" style="overflow: hidden;">
+                        <div
+                            style="width: 100%;height: 3rem;text-align: center;background-color: #1b1d21;padding: 5px;">
+                            <!--<select id="console-select" class="form-select"
+                            style="width: 10rem;height: 2.5rem;position: absolute;" onchange="updateConsole()">
+                            <option value="vnc" selected>VNC</option>
+                            <option value="serial">Serial</option>
+                            </select>-->
+                            <h5>VNC Console</h5>
+                        </div>
+                        <div id="consoleContainer" style="height: 40rem;width: 50rem;background-color: #1b1d21;"></div>
+                    </div>
+                </div>
+            </div>
+            <br>
+            <h3>Networks:</h3>
+            <button onclick="addNetwork()" class="btn btn-success disabled-while-running" disabled>Add network</button>
+            <br><br>
+            <div class="row rounded-3 shadow" style="background-color: #1b1d21;padding: 10px;" id="networks"></div>
+            <br>
+            <h3>Disks:</h3>
+            <button onclick="addDisk()" class="btn btn-success disabled-while-running" disabled>Add disk</button>
+            <br><br>
+            <div class="row rounded-3 shadow" style="background-color: #1b1d21;padding: 10px;" id="disks"></div>
+            <div id="overlay"
+                style="opacity: 0;display: none;position: fixed;top: 0;left: 0;width: 100%;height: 100%;background-color: #1b1d21;z-index: 1;">
+            </div>
+            <div id="edit-disk"
+                style="display: none;padding: 10px;background-color: #1b1d21;z-index: 2;position: absolute;top: 70%;left: 50%;transform: translate(-50%, -50%);width: 20rem;"
+                class="rounded-3 shadow">
+                <h3>Edit disk</h3>
+                <label class="form-label">Device</label>
+                <select class="form-select" id="edit-disk-device"></select>
+                <div class="mb-3">
+                    <label class="form-label">Format (Format of the source disk)</label>
+                    <input class="form-control" id="edit-disk-format">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Source (Path of the source disk)</label>
+                    <input class="form-control" id="edit-disk-source">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Bus</label>
+                    <input class="form-control" id="edit-disk-bus">
+                </div>
+                <label class="form-label">IO limits</label>
+                <div class="mb-3">
+                    <label class="form-label">Total bytes a second</label>
+                    <input class="form-control" id="edit-disk-total-bytes-sec">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Read bytes a second</label>
+                    <input class="form-control" id="edit-disk-read-bytes-sec">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Write bytes a second</label>
+                    <input class="form-control" id="edit-disk-write-bytes-sec">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Total IOPS a second</label>
+                    <input class="form-control" id="edit-disk-total-iops-sec">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Read IOPS a second</label>
+                    <input class="form-control" id="edit-disk-read-iops-sec">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Write IOPS a second</label>
+                    <input class="form-control" id="edit-disk-write-iops-sec">
+                </div>
+                <br>
+                <button class="btn btn-success" id="edit-disk-save">Save</button>
+                <button onclick="document.getElementById('edit-disk').style.display = 'none';closeOverlay()"
+                    class="btn btn-danger">Cancel</button>
+            </div>
+            <div id="edit-network"
+                style="display: none;padding: 10px;background-color: #1b1d21;z-index: 2;position: absolute;top: 65%;left: 50%;transform: translate(-50%, -50%);width: 20rem;"
+                class="rounded-3 shadow">
+                <h3>Edit network</h3>
+                <div class="mb-3">
+                    <label class="form-label">MAC</label>
+                    <input class="form-control" id="edit-network-mac">
+                </div>
+                <label class="form-label">Source network</label>
+                <select class="form-select" id="edit-network-source">
+                </select>
+                <label class="form-label">Inbound limits</label>
+                <div class="mb-3">
+                    <label class="form-label">Average (In KB/s)</label>
+                    <input class="form-control" id="edit-network-inbound-average">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Peak (In KB/s)</label>
+                    <input class="form-control" id="edit-network-inbound-peak">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Burst (In KB)</label>
+                    <input class="form-control" id="edit-network-inbound-burst">
+                </div>
+                <label class="form-label">Outbound limits</label>
+                <div class="mb-3">
+                    <label class="form-label">Average (In KB/s)</label>
+                    <input class="form-control" id="edit-network-outbound-average">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Peak (In KB/s)</label>
+                    <input class="form-control" id="edit-network-outbound-peak">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Burst (In KB)</label>
+                    <input class="form-control" id="edit-network-outbound-burst">
+                </div>
+                <br>
+                <button class="btn btn-success" id="edit-network-save">Save</button>
+                <button onclick="document.getElementById('edit-network').style.display = 'none';closeOverlay()"
+                    class="btn btn-danger">Cancel</button>
+            </div>
+            <div id="edit-div"
+                style="display: none;padding: 10px;background-color: #1b1d21;z-index: 2;position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 20rem;"
+                class="rounded-3 shadow">
+                <h3>Edit VM</h3>
+                <div class="mb-3">
+                    <label class="form-label">VCPUs</label>
+                    <input class="form-control" id="edit-vcpus">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">RAM (value:format)</label>
+                    <input class="form-control" id="edit-ram">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">VRAM (In KB)</label>
+                    <input class="form-control" id="edit-vram">
+                </div>
+                <label class="form-label" id="edit-boot-label">Boot order</label>
+                <div class="form-check">
+                    <input onchange="updateBoot('cdrom', this.checked)" class="form-check-input" type="checkbox"
+                        id="edit-boot-cdrom">
+                    <label class="form-check-label">
+                        CDROM
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input onchange="updateBoot('hd', this.checked)" class="form-check-input" type="checkbox"
+                        id="edit-boot-hd">
+                    <label class="form-check-label">
+                        HDD
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input onchange="updateBoot('network', this.checked)" class="form-check-input" type="checkbox"
+                        id="edit-boot-network">
+                    <label class="form-check-label">
+                        Network
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input onchange="updateBoot('usb', this.checked)" class="form-check-input" type="checkbox"
+                        id="edit-boot-usb">
+                    <label class="form-check-label">
+                        USB
+                    </label>
+                </div>
+                <br>
+                <button onclick="updateVM()" class="btn btn-success">Save</button>
+                <button onclick="document.getElementById('edit-div').style.display = 'none';closeOverlay()"
+                    class="btn btn-danger">Cancel</button>
+            </div>
+            <div id="delete-confirm"
+                style="display: none;padding: 10px;background-color: #1b1d21;z-index: 2;position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 20rem;"
+                class="rounded-3 shadow"></div>
+        </div>
+        <script>
+            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+            function deleteVM() {
+                deleteConfirm("Delete VM", "Are you sure you want to delete this VM? (This will <b>not</b> delete any disks)", () => {
+                    notify("Deleting VM...");
+                    fetch(`/api/vms/{{ vm_name | safe }}`, {
+                        method: "delete",
+                    }).then(async (res) => {
+                        res.status === 200 ? notify("Deleted VM") : notify("Failed to delete VM: " + await res.text(), "red");
+                        if (res.status === 200) window.location = "/";
+                    }).catch((err) => {
+                        notify("Failed to delete VM", "red");
+                    });
+                });
+            }
+            function addDisk() {
+                fetch(`/api/vms/{{ vm_name | safe }}/add_disk`).then((res) => res.json()).then((data) => {
+                   editDisk(data.id); 
+                });
+            }
+            function editDisk(disk) {
+                fetch(`/api/vms/{{ vm_name | safe }}/disks/${disk}`).then((res) => res.json()).then((data) => {
+                    document.getElementById("edit-disk-device").innerHTML = `
+                    <option ${data.device == "cdrom" ? "selected" : ""} value="cdrom">cdrom</option>
+                    <option ${data.device == "disk" ? "selected" : ""} value="disk">disk</option>
+                    `;
+                    document.getElementById("edit-disk-format").value = data.format;
+                    document.getElementById("edit-disk-source").value = data.source;
+                    document.getElementById("edit-disk-bus").value = data.bus;
+                    document.getElementById("edit-disk-total-bytes-sec").value = data.iotune.total_bytes_sec;
+                    document.getElementById("edit-disk-read-bytes-sec").value = data.iotune.read_bytes_sec;
+                    document.getElementById("edit-disk-write-bytes-sec").value = data.iotune.write_bytes_sec;
+                    document.getElementById("edit-disk-total-iops-sec").value = data.iotune.total_iops_sec;
+                    document.getElementById("edit-disk-read-iops-sec").value = data.iotune.read_iops_sec;
+                    document.getElementById("edit-disk-write-iops-sec").value = data.iotune.write_iops_sec;
+                    document.getElementById("edit-disk-save").onclick = () => {
+                        document.getElementById("edit-disk").style.display = "none";
+                        closeOverlay();
+                        notify("Saving disk...");
+                        fetch(`/api/vms/{{ vm_name | safe }}/disks/${disk}`).then((res) => res.json()).then((data) => {
+                            data.device = document.getElementById("edit-disk-device").value;
+                            data.format = document.getElementById("edit-disk-format").value;
+                            data.source = document.getElementById("edit-disk-source").value;
+                            data.bus = document.getElementById("edit-disk-bus").value;
+                            data.iotune.total_bytes_sec = document.getElementById("edit-disk-total-bytes-sec").value;
+                            data.iotune.read_bytes_sec = document.getElementById("edit-disk-read-bytes-sec").value;
+                            data.iotune.write_bytes_sec = document.getElementById("edit-disk-write-bytes-sec").value;
+                            data.iotune.total_iops_sec = document.getElementById("edit-disk-total-iops-sec").value;
+                            data.iotune.read_iops_sec = document.getElementById("edit-disk-read-iops-sec").value;
+                            data.iotune.write_iops_sec = document.getElementById("edit-disk-write-iops-sec").value;
+                            const data2 = new URLSearchParams();
+                            data2.append("config", JSON.stringify(data));
+                            fetch(`/api/vms/{{ vm_name | safe }}/disks/${disk}`, {
+                                method: "post",
+                                body: data2
+                            }).then(async (res) => {
+                                res.status == 200 ? notify("Saved disk", "green") : notify("Failed to save disk: " + await res.text(), "red");
+                            }).catch((err) => {
+                                notify("Failed to save disk", "red");
+                            })
+                        }).catch((err) => {
+                            notify("Failed to save disk", "red");
+                        })
+                    }
+                    openOverlay().then(() => {
+                        document.getElementById("edit-disk").style.display = "block";
+                    });
+                });
+
+            }
+            function deleteConfirm(title, message, callback, extraconfirm) {
+                openOverlay().then(() => {
+                    document.getElementById("delete-confirm").style.display = "block";
+                    document.getElementById("delete-confirm").innerHTML = `
+                        <h3>${title}</h3>
+                        <p>${message}</p>
+                        ${extraconfirm ? `<br>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="delete-extraconfirm">
+                            <label class="form-check-label">
+                                ${extraconfirm}
+                            </label>
+                        </div>` : ""}
+                        <br>
+                        <button id="delete-confirm-yes" class="btn btn-danger">Delete</button>
+                        <button onclick="document.getElementById('delete-confirm').style.display = 'none';closeOverlay()" class="btn btn-success">Cancel</button>
+                    `;
+                    document.getElementById("delete-confirm-yes").onclick = () => {
+                        document.getElementById("delete-confirm").style.display = "none";
+                        closeOverlay();
+                        var extra_confirm = false;
+                        if (extraconfirm) extra_confirm = document.getElementById("delete-extraconfirm").checked;
+                        callback(extra_confirm);
+                    }
+                });
+            }
+            function deleteDisk(disk) {
+                deleteConfirm("Delete disk", `Are you sure you want to delete this disk? (id: ${disk})`, (extra_confirm) => {
+                    notify("Deleting disk...");
+                    fetch(`/api/vms/{{ vm_name | safe }}/disks/${disk}?delete=${extra_confirm}`, {
+                        method: "delete"
+                    }).then(async (res) => {
+                        res.status === 200 ? notify("Deleted disk") : notify("Failed to delete disk: " + await res.text(), "red");
+                    }).catch((err) => {
+                        notify("Failed to delete disk", "red");
+                    })
+                }, "Also remove the file?");
+            }
+            function editNetwork(network) {
+                fetch(`/api/vms/{{ vm_name | safe }}/network/${network}`).then((res) => res.json()).then((data) => {
+                    fetch(`/api/networks`).then((res) => res.json()).then((networks) => {
+                        document.getElementById("edit-network-mac").value = data.mac;
+                        document.getElementById("edit-network-source").innerHTML = "";
+                        networks.forEach((network) => {
+                            document.getElementById("edit-network-source").innerHTML += `<option ${network == data.source.network ? "selected" : ""} value="${network}">${network}</option>`
+                        });
+                        document.getElementById("edit-network-inbound-average").value = data.bandwidth.inbound.average;
+                        document.getElementById("edit-network-inbound-peak").value = data.bandwidth.inbound.peak;
+                        document.getElementById("edit-network-inbound-burst").value = data.bandwidth.inbound.burst;
+                        document.getElementById("edit-network-outbound-average").value = data.bandwidth.outbound.average;
+                        document.getElementById("edit-network-outbound-peak").value = data.bandwidth.outbound.peak;
+                        document.getElementById("edit-network-outbound-burst").value = data.bandwidth.outbound.burst;
+                        document.getElementById("edit-network-save").onclick = () => {
+                            notify("Saving network...");
+                            fetch(`/api/vms/{{ vm_name | safe }}/network/${network}`).then((res) => res.json()).then((data) => {
+                                data.mac = document.getElementById("edit-network-mac").value;
+                                data.source.network = document.getElementById("edit-network-source").value;
+                                data.bandwidth.inbound.average = document.getElementById("edit-network-inbound-average").value;
+                                data.bandwidth.inbound.peak = document.getElementById("edit-network-inbound-peak").value;
+                                data.bandwidth.inbound.burst = document.getElementById("edit-network-inbound-burst").value;
+                                data.bandwidth.outbound.average = document.getElementById("edit-network-outbound-average").value;
+                                data.bandwidth.outbound.peak = document.getElementById("edit-network-outbound-peak").value;
+                                data.bandwidth.outbound.burst = document.getElementById("edit-network-outbound-burst").value;
+                                const data2 = new URLSearchParams();
+                                data2.append("config", JSON.stringify(data));
+                                fetch(`/api/vms/{{ vm_name | safe }}/network/${network}`, {
+                                    method: "post",
+                                    body: data2
+                                }).then(async (res) => {
+                                    res.status === 200 ? notify("Saved network") : notify("Failed to save network: " + await res.text(), "red");
+                                }).catch((err) => {
+                                    notify("Failed to save network", "red");
+                                });
+                            }).catch((err) => {
+                                notify("Failed to save network", "red");
+                            });
+                            document.getElementById("edit-network").style.display = "none";
+                            closeOverlay();
+                        }
+                        openOverlay().then(() => {
+                            document.getElementById("edit-network").style.display = "block";
+                        });
+                    });
+                });
+
+            }
+            function deleteNetwork(network) {
+                deleteConfirm("Delete network", `Are you sure you want to delete this network? (${network})`, () => {
+                    notify("Deleting network...");
+                    fetch(`/api/vms/{{ vm_name | safe }}/network/${network}`, {
+                        method: "delete"
+                    }).then(async (res) => {
+                        res.status === 200 ? notify("Deleted network") : notify("Failed to delete network: " + await res.text(), "red");
+                    }).catch((err) => {
+                        notify("Failed to delete network", "red");
+                    })
+                });
+            }
+            function addNetwork() {
+                fetch(`/api/vms/{{ vm_name | safe }}/add_network`).then((res) => res.json()).then((data) => {
+                    editNetwork(data.mac);
+                });
+            }
+            async function openOverlay() {
+                window.scrollTo(0, 0);
+                document.getElementById("overlay").style.display = "block";
+                for (let i = 0; i <= 0.96; i += 0.02) {
+                    document.getElementById("overlay").style.opacity = i
+                    await sleep(0);
+                }
+            }
+            async function closeOverlay() {
+                for (let i = 0.96; i > 0; i -= 0.02) {
+                    document.getElementById("overlay").style.opacity = i
+                    await sleep(0);
+                }
+                document.getElementById("overlay").style.display = "none";
+            }
+            var boots = [];
+            function updateVM() {
+                notify("Updating VM...");
+                fetch("/api/vms/{{ vm_name | safe }}/config").then((res) => res.json()).then((data) => {
+                    data.memory = document.getElementById("edit-ram").value;
+                    data.cpu.cores = document.getElementById("edit-vcpus").value;
+                    data.devices.video.vram = document.getElementById("edit-vram").value;
+                    data.os.boot = boots;
+                    const data2 = new URLSearchParams();
+                    data2.append("config", JSON.stringify(data));
+                    // POST the config to the server using fetch and form-data
+                    fetch("/api/vms/{{ vm_name | safe }}/config", {
+                        method: 'post',
+                        body: data2,
+                    }).then(async (res) => {
+                        res.status === 200 ? notify("Successfully updated VM") : notify("Failed to update VM: " + res.text(), "red");
+                    }).catch((err) => {
+                        notify("Failed to update VM", "red");
+                    });
+                }).catch((err) => {
+                    notify("Failed to update VM", "red");
+                });
+                document.getElementById('edit-div').style.display = 'none';
+                closeOverlay();
+            }
+            function updateBoot(type, checked) {
+                if (checked) {
+                    boots.push(type);
+                } else {
+                    boots.splice(boots.indexOf(type), 1);
+                }
+                edit_update_boot()
+            }
+            function edit_update_boot() {
+                document.getElementById("edit-boot-label").innerHTML = "Boot order: " + boots.join(", ");
+            }
+            function edit() {
+                fetch("/api/vms/{{ vm_name | safe }}/config").then((res) => res.json()).then((data) => {
+                    boots = [];
+                    document.getElementById("edit-vcpus").value = data.cpu.cores;
+                    document.getElementById("edit-ram").value = data.memory;
+                    document.getElementById("edit-vram").value = data.devices.video.vram;
+                    data.os.boot.forEach((boot) => {
+                        boots.push(boot);
+                        document.getElementById("edit-boot-" + boot).checked = true;
+                    });
+                    edit_update_boot()
+                });
+                openOverlay().then(() => {
+                    document.getElementById("edit-div").style.display = "block";
+                });
+            }
+            function start() {
+                notify("Starting VM...");
+                fetch("/api/vms/{{ vm_name | safe }}/start").then(async (res) => {
+                    res.status == 200 ? notify("VM started") : notify("Failed to start VM: " + await res.text(), "red");
+                }).catch((e) => {
+                    notify("Failed to start VM", "red");
+                });
+            }
+            function stop(force = false) {
+                notify(`${force ? "Force s" : "S"}topping VM...`);
+                fetch("/api/vms/{{ vm_name | safe }}/" + (force ? "destroy" : "stop")).then(async (res) => {
+                    res.status == 200 ? notify(`VM${force ? " force" : ""} stopped`) : notify(`Failed to${force ? " force" : ""} stop VM: ` + await res.text(), "red");
+                }).catch((e) => {
+                    notify(`Failed to${force ? " force" : ""} stop VM", "red`);
+                });
+            }
+            function reboot(force = false) {
+                notify(`${force ? "Force r" : "R"}ebooting VM...`);
+                fetch("/api/vms/{{ vm_name | safe }}/" + (force ? "reset" : "reboot")).then(async (res) => {
+                    res.status == 200 ? notify(`VM${force ? " force" : ""} rebooted`) : notify(`Failed to${force ? " force" : ""} reboot VM: ` + await res.text(), "red");
+                }).catch((e) => {
+                    notify(`Failed to${force ? " force" : ""} reboot VM`, "red");
+                });
+            }
+
+            var moveAlerts = [];
+            async function notify(message, color = "green") {
+                const e = document.createElement("div");
+                e.style.width = "auto";
+                e.style.backgroundColor = color;
+                e.style.padding = "8px";
+                e.style.textAlign = "center";
+                e.style.position = "fixed";
+                e.style.right = -10 * message.length;
+                e.style.bottom = "10";
+                e.style.opacity = "0.85";
+                e.style.cursor = "pointer";
+                e.className = "rounded-3 shadow";
+                e.innerHTML = message;
+                document.body.appendChild(e);
+                if (moveAlerts.length) moveAlerts[moveAlerts.length - 1].moveY = e.scrollHeight + 15
+                moveAlerts.forEach((i, index) => i.fn(i.i, index, i.moveY));
+                const i = moveAlerts.push({
+                    i: 10, fn: async (i2, index, moveY) => {
+                        moveAlerts[index].i = i2 + moveY;
+                        for (let i = i2; i <= i2 + moveY; i += 2) {
+                            e.style.bottom = i;
+                            await sleep(0);
+                        }
+                    }
+                });
+                for (let i = -10 * message.length; i <= 10; i += 2) {
+                    e.style.right = i;
+                    await sleep(0);
+                }
+                e.onclick = async () => {
+                    for (let i = Number(e.style.opacity); i > 0; i -= 0.01) {
+                        e.style.opacity = i;
+                        await sleep(0);
+                    }
+                    e.remove();
+                    delete moveAlerts[i];
+                    moveAlerts = moveAlerts.filter((value) => value !== null);
+                }
+                for (let i = 0.85; i > 0; i -= 0.01) {
+                    e.style.opacity = i;
+                    await sleep(100);
+                }
+                e.remove();
+                delete moveAlerts[i];
+                moveAlerts = moveAlerts.filter((value) => value !== null);
+            }
+            function getRandomColor() {
+                // Generate random values for red, green, and blue
+                var r = Math.floor(Math.random() * 256);
+                var g = Math.floor(Math.random() * 256);
+                var b = Math.floor(Math.random() * 256);
+
+                // Create a CSS color string using the random values
+                var color = 'rgb(' + r + ', ' + g + ', ' + b + ')';
+
+                return color;
+            }
+            /*(async () => {
+                for (let i = 1; i <= 1000; i += 1) {
+                    notify("Hello World!", getRandomColor());
+                    await sleep(100);
+                }
+            })()*/
+
+            function formatBytes(bytes, decimals = 2) {
+                if (!+bytes) return '0 Bytes'
+
+                const k = 1024
+                const dm = decimals < 0 ? 0 : decimals
+                const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
+
+                const i = Math.floor(Math.log(bytes) / Math.log(k))
+
+                return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+            }
+            var running = true;
+            function updateConsole() {
+                //const value = document.getElementById("console-select").value;
+                if (running) {
+                    //if (value == "vnc") {
+                    document.getElementById("consoleContainer").innerHTML = `<iframe style="height: 40rem;width: 50rem;" id="screen" src="/files/novnc/vnc.html?vm={{ vm_name | safe }}&password=${encodeURIComponent("{{ vnc_password }}")}" allow="fullscreen"></iframe>`;
+                    //} else if (value == "serial") {
+                    //    document.getElementById("consoleContainer").innerHTML = 'empty';
+                    //}
+                } else {
+                    document.getElementById("consoleContainer").innerHTML = 'VM Offline';
+                }
+            }
+            updateConsole();
+            var system_time_start = 0, user_time_start = 0;
+            var network_stats = [];
+            var disk_stats = [];
+            function update() {
+                fetch("/api/vms/{{ vm_name | safe }}").then((response) => response.json()).then((data) => {
+                    document.getElementById("on").innerHTML = "{{ vm_name | safe }}: " + (data.running ? "RUNNING" : "STOPPED");
+                    document.getElementById("time").innerHTML = "for " + data.time;
+                    document.getElementById("networks").innerHTML = "";
+                    data.networks.forEach((network, index) => {
+                        document.getElementById("networks").innerHTML += `
+                        <div class="col">
+                            <h5>Network ${index}: </h5>
+                            <p>MAC: ${network.mac}<br>Source: ${network.source.network}<br><a id="network-info-${network.mac.replace(/:/g, "")}"><b>NOT CONNECTED</b></a></p>
+                            <button onclick="editNetwork('${network.mac}')" class="btn btn-success" ${data.running ? 'disabled' : ''}>Edit</button>
+                            <button onclick="deleteNetwork('${network.mac}')" class="btn btn-danger" ${data.running ? 'disabled' : ''}>Delete</button>
+                        </div>`;
+                    });
+                    document.getElementById("disks").innerHTML = "";
+                    data.disks.forEach((disk, index) => {
+                        document.getElementById("disks").innerHTML += `
+                        <div class="col">
+                            <h5>Disk ${index}: </h5>
+                            <p>Type: ${disk.device}<br>Format: ${disk.format}<br>Source: ${disk.source}<br>Size: ${formatBytes(disk.size)}<br>Used: ${formatBytes(disk.used)}<br><a id="disk-info-${index}"></a></p>
+                            <button onclick="editDisk('${index}')" class="btn btn-success" ${data.running ? 'disabled' : ''}>Edit</button>
+                            <button onclick="deleteDisk('${index}')" class="btn btn-danger" ${data.running ? 'disabled' : ''}>Delete</button>
+                        </div>`;
+                    });
+                    if (data.running) {
+                        document.getElementById("start-button").setAttribute("disabled", true);
+                        document.getElementById("stop-button").removeAttribute("disabled");
+                        document.getElementById("reboot-button").removeAttribute("disabled");
+                        document.getElementById("reset-button").removeAttribute("disabled");
+                        document.getElementById("destroy-button").removeAttribute("disabled");
+                        document.getElementById("memory-div").style.display = "block";
+                        document.getElementById("cpu-div").style.display = "block";
+                        // RAM
+                        var memory_percent = parseInt(((data.memory.rss) / (data.memory.actual)) * 100);
+                        var color = "bg-success";
+                        if (memory_percent > 30) color = "bg-info";
+                        if (memory_percent > 70) color = "bg-warning";
+                        if (memory_percent > 90) color = "bg-danger";
+                        document.getElementById("memory-display").innerHTML = "Memory: (" + formatBytes(data.memory.rss * 1024) + "/" + formatBytes(data.memory.actual * 1024) + ")";
+                        document.getElementById("memory").className = "progress-bar " + color;
+                        document.getElementById("memory").style.width = memory_percent + "%";
+                        document.getElementById("memory").innerHTML = memory_percent + "%";
+                        // CPU
+                        system_time_diff = (data.CPUStats_total[0].system_time + data.CPUStats_total[0].user_time) - system_time_start;
+                        system_time_start = (data.CPUStats_total[0].system_time + data.CPUStats_total[0].user_time);
+                        const cpu_percent = parseInt((system_time_diff) / 10000000);
+                        const relative_cpu_percent = cpu_percent / data.vcpus;
+                        var color = "bg-success";
+                        if (relative_cpu_percent > 30) color = "bg-info";
+                        if (relative_cpu_percent > 70) color = "bg-warning";
+                        if (relative_cpu_percent > 90) color = "bg-danger";
+                        document.getElementById("cpu").className = "progress-bar " + color;
+                        document.getElementById("cpu").style.width = relative_cpu_percent + "%";
+                        document.getElementById("cpu").innerHTML = cpu_percent + "%";
+                        // NETWORK
+                        Object.keys(data.networks_live).forEach((network, index) => {
+                            const stats = data.interfaceStats[network];
+                            /*
+                            NETWORK Statistics for Domain:
+                                Received bytes: stats[0]
+                                Received packets: stats[1]
+                                Received errors: stats[2]
+                                Received drops: stats[3]
+                                Transmitted bytes: stats[4]
+                                Transmitted packets: stats[5]
+                                Transmitted errors: stats[6]
+                                Transmitted drops: stats[7]
+                            */
+                            if (!network_stats[index]) network_stats[index] = stats;
+                            document.getElementById("network-info-" + data.networks_live[network].hwaddr.replace(/:/g, "")).innerHTML = `<b>CONNECTED</b><br>IP: ${data.networks_live[network].addrs[0].addr}/${data.networks_live[network].addrs[0].prefix}<br><b>Stats:</b><br>`;
+                            document.getElementById("network-info-" + data.networks_live[network].hwaddr.replace(/:/g, "")).innerHTML += `Receiving Speed: ${parseInt((stats[0] - network_stats[index][0]) / 83886)} Mbps<br>Transmitting Speed: ${parseInt((stats[4] - network_stats[index][4]) / 83886)} Mbps<br>`;
+                            document.getElementById("network-info-" + data.networks_live[network].hwaddr.replace(/:/g, "")).innerHTML += `Received Bytes: ${formatBytes(stats[0])}<br>Received Packets: ${stats[1]}<br>Received Errors: ${stats[2]}<br>Received Drops: ${stats[3]}<br>`;
+                            document.getElementById("network-info-" + data.networks_live[network].hwaddr.replace(/:/g, "")).innerHTML += `Transmitted Bytes: ${formatBytes(stats[4])}<br>Transmitted Packets: ${stats[5]}<br>Transmitted Errors: ${stats[6]}<br>Transmitted Drops: ${stats[7]}<br>`;
+                            network_stats[index] = stats;
+                        });
+
+
+                        data.blockStats.forEach((stats, index) => {
+                            /*
+                            Block Device Stats:
+                                Read Requests: stats[0]
+                                Read Bytes: stats[1]
+                                Write Requests: stats[2]
+                                Write Bytes: stats[3]
+                                Errors: stats[4]
+                            */
+                            if (!disk_stats[index]) disk_stats[index] = stats;
+                            document.getElementById("disk-info-" + index).innerHTML = `<b>Stats:</b><br>Read Speed: ${formatBytes(stats[1] - disk_stats[index][1])}/s<br>Write Speed: ${formatBytes(stats[3] - disk_stats[index][3])}/s<br>Read Requests: ${stats[0]}<br>Read Bytes: ${formatBytes(stats[1])}<br>Write Requests: ${stats[2]}<br>Write Bytes: ${formatBytes(stats[3])}<br>Errors: ${stats[4]}<br>`;
+                            disk_stats[index] = stats;
+                        });
+                    } else {
+                        document.getElementById("start-button").removeAttribute("disabled");
+                        document.getElementById("stop-button").setAttribute("disabled", true);
+                        document.getElementById("reboot-button").setAttribute("disabled", true);
+                        document.getElementById("reset-button").setAttribute("disabled", true);
+                        document.getElementById("destroy-button").setAttribute("disabled", true);
+                        document.getElementById("memory-div").style.display = "none";
+                        document.getElementById("cpu-div").style.display = "none";
+                    }
+                    if (data.running != running) {
+                        running = data.running;
+                        updateConsole();
+                        if (running) {
+                            Array.from(document.getElementsByClassName("disabled-while-running")).forEach(element => {
+                                element.setAttribute("disabled", true);
+                            });
+                        } else {
+                            Array.from(document.getElementsByClassName("disabled-while-running")).forEach(element => {
+                                element.removeAttribute("disabled");
+                            });
+                        }
+                    }
+                });
+            }
+            setInterval(update, 1000);
+            update();
+        </script>
+    </div>
+    {{ footer | safe }}
+    <script src="/files/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,33 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login</title>
+    <link href="/files/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body style="background-color: #26292d;color: white;">
+    <div style="min-height: 90%;">
+        <form class="rounded-3 shadow" method="post"
+            style="padding: 10px;position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 20rem;background-color: #1b1d21;">
+            <h3>Login</h3>
+            <div class="mb-3">
+                <label class="form-label">Username</label>
+                <input class="form-control" name="username" value="{{ username }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-control" name="password" value="{{ password }}">
+            </div>
+            <button type="submit" class="btn btn-primary">Login</button>
+            <br>
+            {{ text | safe }}
+        </form>
+    </div>
+    {{ footer | safe }}
+    <script src="/files/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

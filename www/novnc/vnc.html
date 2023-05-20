@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>VNC</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #1b1d21;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        #top_bar {
+            background-color: #6e84a3;
+            color: white;
+            font: bold 12px Helvetica;
+            padding: 6px 5px 4px 5px;
+            border-bottom: 1px outset;
+        }
+
+        #status {
+            text-align: center;
+        }
+
+        #sendCtrlAltDelButton {
+            position: fixed;
+            top: 0px;
+            right: 0px;
+            border: 1px outset;
+            padding: 5px 5px 4px 5px;
+            cursor: pointer;
+        }
+
+        #fullScreen {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            border: 1px outset;
+            padding: 5px 5px 4px 5px;
+            cursor: pointer;
+        }
+
+        #screen {
+            flex: 1;
+            /* fill remaining space */
+            overflow: hidden;
+        }
+    </style>
+
+    <script type="module" crossorigin="anonymous">
+        // RFB holds the API to connect and communicate with a VNC server
+        import RFB from './core/rfb.js';
+
+        let rfb;
+        let desktopName;
+
+        // When this function is called we have
+        // successfully connected to a server
+        function connectedToServer(e) {
+            status("Connected to " + desktopName);
+        }
+
+        // When this function is called, the server requires
+        // credentials to authenticate
+        function credentialsAreRequired(e) {
+            const password = prompt("Password Required:");
+            rfb.sendCredentials({ password: password });
+        }
+
+        // This function is called when we are disconnected
+        function disconnectedFromServer(e) {
+            setTimeout(connect, 5000);
+            if (e.detail.clean) {
+                status("Disconnected");
+            } else {
+                status("Something went wrong, connection is closed");
+            }
+        }
+
+        // When this function is called we have received
+        // a desktop name from the server
+        function updateDesktopName(e) {
+            desktopName = e.detail.name;
+        }
+
+        // Since most operating systems will catch Ctrl+Alt+Del
+        // before they get a chance to be intercepted by the browser,
+        // we provide a way to emulate this key sequence.
+        function sendCtrlAltDel() {
+            rfb.sendCtrlAltDel();
+            return false;
+        }
+
+        function fullScreen() {
+            const elem = document.getElementById('screen');
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE11 */
+                elem.msRequestFullscreen();
+            }
+        }
+
+        // Show a status text in the top bar
+        function status(text) {
+            document.getElementById('status').textContent = text;
+        }
+
+        // This function extracts the value of one variable from the
+        // query string. If the variable isn't defined in the URL
+        // it returns the default value instead.
+        function readQueryVariable(name, defaultValue) {
+            // A URL with a query parameter can look like this:
+            // https://www.example.com?myqueryparam=myvalue
+            //
+            // Note that we use location.href instead of location.search
+            // because Firefox < 53 has a bug w.r.t location.search
+            const re = new RegExp('.*[?&]' + name + '=([^&#]*)'),
+                match = document.location.href.match(re);
+
+            if (match) {
+                // We have to decode the URL since want the cleartext value
+                return decodeURIComponent(match[1]);
+            }
+
+            return defaultValue;
+        }
+
+        document.getElementById('sendCtrlAltDelButton').onclick = sendCtrlAltDel;
+        document.getElementById('fullScreen').onclick = fullScreen;
+
+        const password = readQueryVariable('password');
+
+        function connect() {
+            status("Connecting");
+
+            rfb = new RFB(document.getElementById('screen'), `${window.location.protocol == 'https:' ? 'wss' : 'ws'}://${window.location.host}/api/vms/${readQueryVariable('vm')}/vncws`,
+                { credentials: { password: password } });
+
+            rfb.addEventListener("connect", connectedToServer);
+            rfb.addEventListener("disconnect", disconnectedFromServer);
+            rfb.addEventListener("credentialsrequired", credentialsAreRequired);
+            rfb.addEventListener("desktopname", updateDesktopName);
+
+            rfb.scaleViewport = true;
+        }
+        connect();
+    </script>
+</head>
+
+<body>
+    <div id="top_bar">
+        <div id="fullScreen">Full Screen</div>
+        <div id="status">Loading</div>
+        <div id="sendCtrlAltDelButton">Send CtrlAltDel</div>
+    </div>
+    <div id="screen">
+        <!-- This is where the remote screen will appear -->
+    </div>
+</body>
+
+</html>

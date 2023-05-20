@@ -1,0 +1,91 @@
+{
+    "name": "",
+    "os": {
+        "arch": "x86_64",
+        "machine": "q35",
+        "boot": [
+            "hd",
+            "cdrom"
+        ],
+        "bios": {
+            "bootmenu": "3000",
+            "sysinfo": ""
+        }
+    },
+    "cpu": {
+        "model": "kvm64",
+        "vendor": "GenuineIntel",
+        "sockets": "1",
+        "dies": "1",
+        "cores": "1",
+        "threads": "1"
+    },
+    "memory": "1:G",
+    "devices": {
+        "networks": [
+            {
+                "model": "e1000e",
+                "mac": "",
+                "source": {
+                    "type": "network",
+                    "network": "default"
+                },
+                "bandwidth": {
+                    "inbound": {
+                        "average": "",
+                        "burst": "",
+                        "peak": ""
+                    },
+                    "outbound": {
+                        "average": "",
+                        "burst": "",
+                        "peak": ""
+                    }
+                }
+            }
+        ],
+        "disks": [
+            {
+                "device": "disk",
+                "format": "qcow2",
+                "source": "",
+                "bus": "sata",
+                "iotune": {
+                    "total_bytes_sec": "",
+                    "read_bytes_sec": "",
+                    "write_bytes_sec": "",
+                    "total_iops_sec": "",
+                    "read_iops_sec": "",
+                    "write_iops_sec": ""
+                }
+            },
+            {
+                "device": "cdrom",
+                "format": "raw",
+                "source": "",
+                "bus": "sata",
+                "iotune": {
+                    "total_bytes_sec": "",
+                    "read_bytes_sec": "",
+                    "write_bytes_sec": "",
+                    "total_iops_sec": "",
+                    "read_iops_sec": "",
+                    "write_iops_sec": ""
+                }
+            }
+        ],
+        "graphics": {
+            "vnc": {
+                "password": "",
+                "host": "",
+                "port": ""
+            }
+        },
+        "video": {
+            "driver": "qemu",
+            "accel3d": "no",
+            "type": "qxl",
+            "vram": "1000"
+        }
+    }
+}
