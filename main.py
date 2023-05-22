@@ -63,7 +63,6 @@ async def newvm():
         form = {"name": "", "disksize": "", "iso": ""}
         if request.method == "POST":
             form = await request.form
-            print(form)
             if form["name"] and form["disksize"] and form["iso"]:
                 if core.is_file_system_safe(form["name"]):
                     if os.path.isfile(vmmconfig.datadir + "/vms/" + form["name"]):
