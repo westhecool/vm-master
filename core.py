@@ -6,36 +6,47 @@ import os
 import libvirt
 import string
 import json
+
+
 def list_host_usb():
     d = []
     for device in usb.core.find(find_all=True):
-        dev = usb.core.find(idVendor=device.idVendor, idProduct=device.idProduct)
+        dev = usb.core.find(idVendor=device.idVendor,
+                            idProduct=device.idProduct)
         name = usb.util.get_string(dev, dev.iProduct)
         device.name = name
         d.append(device)
     return d
+
+
 def make_mac():
-    mac = [ 0x00, 0x16, 0x3e, random.randint(0x00, 0x7f), 
-            random.randint(0x00, 0xff), random.randint(0x00, 0xff)]
+    mac = [0x00, 0x16, 0x3e, random.randint(0x00, 0x7f),
+           random.randint(0x00, 0xff), random.randint(0x00, 0xff)]
     return ':'.join(map(lambda x: "%02x" % x, mac))
+
+
 def make_domain_xml(data):
     def getboot():
         d = ""
         for x in data["os"]["boot"]:
             d += f"""<boot dev="{x}"/>\n"""
         return d
+
     def ifelse(x, y, z):
         if x:
             return y
         else:
             return z
+
     def getbootmenu():
         if data["os"]["bios"]["bootmenu"]:
             return f"""<bootmenu enable="yes" timeout="{data["os"]["bios"]["bootmenu"]}"/>"""
         else:
             return """<bootmenu enable="no">"""
+
     def getvcpus():
         return int(data["cpu"]["sockets"]) * int(data["cpu"]["dies"]) * int(data["cpu"]["cores"]) * int(data["cpu"]["threads"])
+
     def getnetworks():
         d = ""
         i = 0
@@ -54,6 +65,7 @@ def make_domain_xml(data):
     </interface>\n"""
             i += 1
         return d
+
     def getdisks():
         d = ""
         i = 0
@@ -227,11 +239,14 @@ def make_domain_xml(data):
     </domain>
     """
     return d
+
+
 def is_authenticated(login_cookie):
     if login_cookie is not None:
         if len(login_cookie.split(":")) > 1:
             if os.path.isfile(config.datadir + "/users/" + login_cookie.split(":")[0]):
-                f = open(config.datadir + "/users/" + login_cookie.split(":")[0])
+                f = open(config.datadir + "/users/" +
+                         login_cookie.split(":")[0])
                 d = json.loads(f.read())
                 f.close()
                 if d["password"] == login_cookie.split(":")[1]:
@@ -244,6 +259,8 @@ def is_authenticated(login_cookie):
             return False
     else:
         return False
+
+
 def make_and_start_vm(client, name):
     try:
         vm = client.lookupByName(name)
@@ -266,6 +283,8 @@ def make_and_start_vm(client, name):
     f.write(json.dumps(d))
     f.close()
     client.defineXML(make_domain_xml(d)).create()
+
+
 def convert_seconds(seconds):
     minutes = seconds // 60
     hours = minutes // 60
@@ -287,18 +306,24 @@ def convert_seconds(seconds):
 
     result = ", ".join(time_units)
     return result
+
+
 def is_file_system_safe(string):
     illegal_chars = {'/', '\\', '?', '%', '*', ':', '|', '"', '<', '>', '.'}
     for char in string:
         if char in illegal_chars:
             return False
     return True
+
+
 def vm_is_running(client, name):
-    try: 
+    try:
         vm = client.lookupByName(name)
         return vm.isActive() == 1
     except:
         return False
+
+
 def mark_vm_as_stopped(name):
     f = open("./data/vms/" + name)
     d = json.loads(f.read())
@@ -308,6 +333,8 @@ def mark_vm_as_stopped(name):
     f = open("./data/vms/" + name, "w")
     f.write(json.dumps(d))
     f.close()
+
+
 def make_network_xml(d):
     return f"""
     <network>
@@ -323,9 +350,11 @@ def make_network_xml(d):
     </ip>
     </network>
     """
+
+
 def boot():
     client = libvirt.open("qemu:///system")
-    #net
+    # net
     for net in os.listdir(config.datadir + "/networks"):
         try:
             net_xml = client.networkLookupByName(net)
