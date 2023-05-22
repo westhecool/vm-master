@@ -5,3 +5,4 @@ python3 -m venv venv
 ./venv/bin/pip install libvirt-python quart pyusb
 echo -e '\nuser = "root"\ngroup = "root"' >> /etc/libvirt/qemu.conf
 service libvirtd restart
+mkdir ./data/disks ./data/isos ./data/vms
