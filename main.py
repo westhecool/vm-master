@@ -63,20 +63,17 @@ async def newvm():
         form = {"name": "", "disksize": "", "iso": ""}
         if request.method == "POST":
             form = await request.form
+            print(form)
             if form["name"] and form["disksize"] and form["iso"]:
                 if core.is_file_system_safe(form["name"]):
                     if os.path.isfile(vmmconfig.datadir + "/vms/" + form["name"]):
                         text = '<a style="color:red">VM already exists<a>'
                     else:
-                        disk = vmmconfig.datadir + "/disks/" + form["name"] + ".qcow2"
+                        disk = vmmconfig.datadir + \
+                            "/disks/" + form["name"] + ".qcow2"
                         try:
                             disksize = form["disksize"].replace('"', '\\"')
-                            if (
-                                os.system(
-                                    f'qemu-img create -f qcow2 {disk} "{disksize}"'
-                                )
-                                == 0
-                            ):
+                            if (subprocess.run(['qemu-img', 'create', '-f', 'qcow2', disk, disksize]).returncode == 0):
                                 f = open(vmmconfig.datadir + "/templates/1")
                                 d = json.loads(f.read())
                                 f.close()
@@ -91,12 +88,14 @@ async def newvm():
                                 )
                                 d["devices"]["graphics"]["vnc"]["host"] = "localhost"
                                 d["devices"]["graphics"]["vnc"]["port"] = str(
-                                    6000 + len(os.listdir(vmmconfig.datadir + "/vms"))
+                                    6000 +
+                                    len(os.listdir(vmmconfig.datadir + "/vms"))
                                 )
                                 d["time"] = time.time()
                                 d["state"] = "stopped"
                                 f = open(
-                                    vmmconfig.datadir + "/vms/" + form["name"], "w"
+                                    vmmconfig.datadir + "/vms/" +
+                                    form["name"], "w"
                                 )
                                 f.write(json.dumps(d))
                                 f.close()
@@ -266,7 +265,8 @@ def api_vm(vm_name):
                 try:
                     d3 = json.loads(
                         subprocess.run(
-                            ["qemu-img", "info", "-U", "--output=json", disk["source"]],
+                            ["qemu-img", "info", "-U",
+                                "--output=json", disk["source"]],
                             capture_output=True,
                         ).stdout.decode()
                     )
@@ -284,7 +284,8 @@ def api_vm(vm_name):
                 d["blockStats"] = []
                 i = 0
                 for disk in d2["devices"]["disks"]:
-                    d["blockStats"].append(vm.blockStats("sd" + string.ascii_lowercase[i]))
+                    d["blockStats"].append(vm.blockStats(
+                        "sd" + string.ascii_lowercase[i]))
                     i += 1
                 # d['CPUStats'] = vm.getCPUStats(total=False)
                 d["CPUStats_total"] = vm.getCPUStats(total=True)
