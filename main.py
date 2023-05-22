@@ -22,35 +22,38 @@ client = libvirt.open("qemu:///system")
 
 @app.route("/")
 async def index():
-    f = open("www/index.html")
-    d = f.read()
-    f.close()
-    f = open("www/nav.html")
-    nav = f.read()
-    f.close()
-    f = open("www/footer.html")
-    footer = f.read()
-    f.close()
-    content = ""
-    for vm in os.listdir(vmmconfig.datadir + "/vms"):
-        f = open(vmmconfig.datadir + "/vms/" + vm)
-        d2 = json.loads(f.read())
+    if core.is_authenticated(request.cookies.get("login")):
+        f = open("www/index.html")
+        d = f.read()
         f.close()
-        content += f"""
-        <div class="row">
-            <div class="col">
-                {vm}
+        f = open("www/nav.html")
+        nav = f.read()
+        f.close()
+        f = open("www/footer.html")
+        footer = f.read()
+        f.close()
+        content = ""
+        for vm in os.listdir(vmmconfig.datadir + "/vms"):
+            f = open(vmmconfig.datadir + "/vms/" + vm)
+            d2 = json.loads(f.read())
+            f.close()
+            content += f"""
+            <div class="row">
+                <div class="col">
+                    {vm}
+                </div>
+                <div class="col">
+                    {d2["state"]} for {core.convert_seconds(int(time.time() - d2["time"]))}
+                </div>
+                <div class="col">
+                    <a href="/vms/{vm}">Control</a>
+                </div>
             </div>
-            <div class="col">
-                {d2["state"]} for {core.convert_seconds(int(time.time() - d2["time"]))}
-            </div>
-            <div class="col">
-                <a href="/vms/{vm}">Control</a>
-            </div>
-        </div>
-        <hr>
-        """
-    return await render_template_string(d, footer=footer, nav=nav, content=content)
+            <hr>
+            """
+        return await render_template_string(d, footer=footer, nav=nav, content=content)
+    else:
+        return redirect("/login")
 
 
 @app.route("/newvm", methods=["GET", "POST"])
