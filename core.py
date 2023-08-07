@@ -112,7 +112,7 @@ def make_domain_xml(data):
         <sysinfo type="smbios">
     {data["os"]["bios"]["sysinfo"]}
         </sysinfo>
-        <memory unit="{data["memory"].split(':')[1]}">{data["memory"].split(':')[0]}</memory>
+        <memory unit="M">{data["memory"]}</memory>
         <vcpu placement="static">{getvcpus()}</vcpu>
         <clock offset="localtime">
             <timer name="rtc" tickpolicy="catchup"/>

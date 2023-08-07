@@ -20,7 +20,7 @@
         "cores": "1",
         "threads": "1"
     },
-    "memory": "1:G",
+    "memory": "1024",
     "devices": {
         "networks": [
             {
