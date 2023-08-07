@@ -1,3 +1,6 @@
 venv
 __pycache__
 .vscode
+data/vms
+data/isos
+data/disks

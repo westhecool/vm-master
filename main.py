@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(
         description="A Modern looking web interface for libvirt")
 parser.add_argument(
         "--auto-start-libvirt", default=False, action="store_true",
-        help="Auto start libvirt this can be useful if your not using systemd. (Like in a docker container)", required=False)
+        help="Auto start libvirt. (This can be useful if your not using systemd; Such as in a docker container.)", required=False)
 args = parser.parse_args()
 
 virtlogd_process = None
