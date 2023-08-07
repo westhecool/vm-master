@@ -1,6 +1,7 @@
 import time
 import libvirt
 import os
+import sys
 import json
 import string
 import random
@@ -11,6 +12,43 @@ import config as vmmconfig
 import threading
 import subprocess
 from quart import *
+import atexit
+import argparse
+
+parser = argparse.ArgumentParser(
+        description="")
+parser.add_argument(
+        "--auto-start-libvirt", default=False, action="store_true",
+        help="Auto start libvirt this can be useful if your not using systemd. (Like in a docker container)", required=False)
+args = parser.parse_args()
+
+virtlogd_process = None
+libvirtd_process = None
+if args.auto_start_libvirt:
+    print("Auto starting libvirt...")
+    virtlogd_process = subprocess.Popen("virtlogd", stderr=sys.stderr, stdout=sys.stdout)
+    libvirtd_process = subprocess.Popen("libvirtd", stderr=sys.stderr, stdout=sys.stdout)
+    print("libvirt started. libvirt pid: " + str(libvirtd_process.pid) + ", virtlogd pid: " + str(virtlogd_process.pid) + ".")
+    print("Waiting for a bit so libvirtd can start up...")
+    time.sleep(5)
+
+def exit_handler():
+    print("Exiting...")
+    if libvirtd_process is not None:
+        print("Killing libvirtd...")
+        try:
+            libvirtd_process.kill()
+        except Exception as e:
+            print("Could not kill libvirtd: " + str(e), file=sys.stderr)
+    if virtlogd_process is not None:
+        print("Killing virtlogd...")
+        try:
+            virtlogd_process.kill()
+        except Exception as e:
+            print("Could not kill virtlogd: " + str(e), file=sys.stderr)
+
+
+atexit.register(exit_handler)
 
 threading.Thread(target=core.boot).start()
 
@@ -73,7 +111,7 @@ async def newvm():
                             "/disks/" + form["name"] + ".qcow2"
                         try:
                             disksize = form["disksize"].replace('"', '\\"')
-                            if (subprocess.run(['qemu-img', 'create', '-f', 'qcow2', disk, disksize]).returncode == 0):
+                            if (subprocess.run(["qemu-img", "create", "-f", "qcow2", disk, disksize]).returncode == 0):
                                 f = open(vmmconfig.datadir + "/templates/1")
                                 d = json.loads(f.read())
                                 f.close()
@@ -287,7 +325,7 @@ def api_vm(vm_name):
                     d["blockStats"].append(vm.blockStats(
                         "sd" + string.ascii_lowercase[i]))
                     i += 1
-                # d['CPUStats'] = vm.getCPUStats(total=False)
+                # d["CPUStats"] = vm.getCPUStats(total=False)
                 d["CPUStats_total"] = vm.getCPUStats(total=True)
                 d["memory"] = vm.memoryStats()
                 d["vcpus"] = len(vm.vcpus()[0])
