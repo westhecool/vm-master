@@ -1,4 +1,6 @@
 {
+    "filetype": "vm",
+    "fileversion": "0.0.1",
     "name": "",
     "os": {
         "arch": "x86_64",
