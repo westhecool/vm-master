@@ -80,6 +80,11 @@
                 "password": "",
                 "host": "",
                 "port": ""
+            },
+            "spice": {
+                "password": "",
+                "host": "",
+                "port": ""
             }
         },
         "video": {

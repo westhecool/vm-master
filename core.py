@@ -146,6 +146,12 @@ def make_domain_xml(data, name):
                 <listen type="address" address="{data["devices"]["graphics"]["vnc"]["host"]}"/>
                 <image compression="off"/>
             </graphics>
+            <graphics type="spice" port="{data["devices"]["graphics"]["spice"]["port"]}" {ifelse(data["devices"]["graphics"]["spice"]["password"], f"passwd='{data['devices']['graphics']['spice']['password']}'", "")}>
+                <listen type="address" address="{data["devices"]["graphics"]["spice"]["host"]}"/>
+                <channel name="main" mode="insecure"/>
+                <channel name="record" mode="insecure"/>
+                <image compression="off"/>
+            </graphics>
             <video>
                 <model type="{data["devices"]["video"]["type"]}" vram="{data["devices"]["video"]["vram"]}" heads="1" primary="yes">
                     <acceleration accel3d="{data["devices"]["video"]["accel3d"]}"/>
@@ -164,6 +170,7 @@ def make_domain_xml(data, name):
             <sound model="ich9">
                 <address type="pci" domain="0x0000" bus="0x00" slot="0x02" function="0x0"/>
             </sound>
+            <audio type="spice" id="1"/>
             <controller type="usb" index="0" model="qemu-xhci"> <!-- usb bus 1 for internal devices -->
                 <address type="pci" domain="0x0000" bus="0x00" slot="0x03" function="0x0"/>
             </controller>

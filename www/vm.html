@@ -50,12 +50,12 @@
                     <div class="rounded-3 shadow" style="overflow: hidden;">
                         <div
                             style="width: 100%;height: 3rem;text-align: center;background-color: #1b1d21;padding: 5px;">
-                            <!--<select id="console-select" class="form-select"
-                            style="width: 10rem;height: 2.5rem;position: absolute;" onchange="updateConsole()">
-                            <option value="vnc" selected>VNC</option>
-                            <option value="serial">Serial</option>
-                            </select>-->
-                            <h5>VNC Console</h5>
+                            <select id="console-select" class="form-select"
+                                style="width: 10rem;height: 2.5rem;position: absolute;" onchange="updateConsole()">
+                                <option value="vnc" selected>VNC</option>
+                                <option value="spice">Spice (has audio but scaling is broken :/)</option>
+                            </select>
+                            <h5>Console</h5>
                         </div>
                         <div id="consoleContainer" style="height: 40rem;width: 50rem;background-color: #1b1d21;"></div>
                     </div>
@@ -583,13 +583,13 @@
             }
             var state = "running";
             function updateConsole() {
-                //const value = document.getElementById("console-select").value;
+                const value = document.getElementById("console-select").value;
                 if (state == "running") {
-                    //if (value == "vnc") {
-                    document.getElementById("consoleContainer").innerHTML = `<iframe style="height: 40rem;width: 50rem;" id="screen" src="/api/vms/{{ vm_name | safe }}/vncurl" allow="fullscreen"></iframe>`;
-                    //} else if (value == "serial") {
-                    //    document.getElementById("consoleContainer").innerHTML = "empty";
-                    //}
+                    if (value == "vnc") {
+                        document.getElementById("consoleContainer").innerHTML = `<iframe style="height: 40rem;width: 50rem;" id="screen" src="/api/vms/{{ vm_name | safe }}/vncurl" allow="fullscreen"></iframe>`;
+                    } else if (value == "spice") {
+                        document.getElementById("consoleContainer").innerHTML = `<iframe style="height: 40rem;width: 50rem;" id="screen" src="/api/vms/{{ vm_name | safe }}/spiceurl" allow="fullscreen"></iframe>`;
+                    }
                 } else {
                     document.getElementById("consoleContainer").innerHTML = "VM Offline";
                 }

@@ -130,6 +130,16 @@ async def newvm():
                                     6000 +
                                     len(os.listdir(vmmconfig.datadir + "/vms"))
                                 )
+                                d["devices"]["graphics"]["spice"]["password"] = "".join(
+                                    random.choices(
+                                        string.ascii_uppercase + string.digits, k=8
+                                    )
+                                )
+                                d["devices"]["graphics"]["spice"]["host"] = "localhost"
+                                d["devices"]["graphics"]["spice"]["port"] = str(
+                                    6500 +
+                                    len(os.listdir(vmmconfig.datadir + "/vms"))
+                                )
                                 d["time"] = time.time()
                                 d["state"] = "stopped"
                                 f = open(
@@ -640,6 +650,23 @@ async def vnc_url(vm_name):
             return "Not found", 404
     else:
         return "Unauthorized", 403
+    
+@app.route("/api/vms/<vm_name>/spiceurl", methods=["GET"])
+async def spice_url(vm_name):
+    if core.is_authenticated(request.cookies.get("login")):
+        if os.path.isfile(vmmconfig.datadir + "/vms/" + vm_name):
+            f = open(vmmconfig.datadir + "/vms/" + vm_name)
+            d = json.loads(f.read())
+            f.close()
+            password = d["devices"]["graphics"]["spice"]["password"]
+            resp = await make_response(f"/files/spice-html5/spice.html?vm={vm_name}&password={password}")
+            resp.status_code = 302
+            resp.headers["Location"] = f"/files/spice-html5/spice.html?vm={vm_name}&password={password}"
+            return resp
+        else:
+            return "Not found", 404
+    else:
+        return "Unauthorized", 403
 
 async def vnc_sending(reader, writer):
     while True:
@@ -671,6 +698,36 @@ async def vnc_ws(vm_name):
             return "VM not found", 404
     else:
         return "Unauthorized", 403
+    
+async def spice_sending(reader, writer):
+    while True:
+        d = await reader.read(1024)
+        await websocket.send(d)
 
+
+async def spice_receiving(reader, writer):
+    while True:
+        data = await websocket.receive()
+        writer.write(data)
+
+
+@app.websocket("/api/vms/<vm_name>/spicews")
+async def spice_ws(vm_name):
+    if core.is_authenticated(websocket.cookies.get("login")):
+        if os.path.isfile(vmmconfig.datadir + "/vms/" + vm_name):
+            f = open(vmmconfig.datadir + "/vms/" + vm_name)
+            d = json.loads(f.read())
+            f.close()
+            reader, writer = await asyncio.open_connection(
+                d["devices"]["graphics"]["spice"]["host"],
+                int(d["devices"]["graphics"]["spice"]["port"]),
+            )
+            producer = asyncio.create_task(spice_sending(reader, writer))
+            consumer = asyncio.create_task(spice_receiving(reader, writer))
+            await asyncio.gather(producer, consumer)
+        else:
+            return "VM not found", 404
+    else:
+        return "Unauthorized", 403
 
 app.run(host="0.0.0.0", port=8880)

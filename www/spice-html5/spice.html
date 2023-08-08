@@ -1,0 +1,236 @@
+<!--
+   Copyright (C) 2012 by Jeremy P. White <jwhite@codeweavers.com>
+
+   This file is part of spice-html5.
+
+   spice-html5 is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Lesser General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   spice-html5 is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public License
+   along with spice-html5.  If not, see <http://www.gnu.org/licenses/>.
+
+   --------------------------------------------------
+    Spice Javascript client template.
+    Refer to main.js for more detailed information
+   --------------------------------------------------
+
+-->
+
+<!doctype html>
+<html>
+
+<head>
+
+    <title>Spice</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #1b1d21;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        #top_bar {
+            background-color: #6e84a3;
+            color: white;
+            font: bold 12px Helvetica;
+            padding: 6px 5px 4px 5px;
+            border-bottom: 1px outset;
+        }
+
+        #status {
+            text-align: center;
+        }
+
+        #sendCtrlAltDelButton {
+            position: fixed;
+            top: 0px;
+            right: 0px;
+            border: 1px outset;
+            padding: 5px 5px 4px 5px;
+            cursor: pointer;
+        }
+
+        #fullScreen {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            border: 1px outset;
+            padding: 5px 5px 4px 5px;
+            cursor: pointer;
+        }
+
+        #spice-area {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            /* fill remaining space */
+            overflow: hidden;
+        }
+
+        #spice-screen {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translate(-50%, 0);
+        }
+    </style>
+
+    <!-- ES2015/ES6 modules polyfill -->
+    <script type="module">
+        window._spice_has_module_support = true;
+    </script>
+    <script>
+        window.addEventListener("load", function () {
+            if (window._spice_has_module_support) return;
+            var loader = document.createElement("script");
+            loader.src = "thirdparty/browser-es-module-loader/dist/" +
+                "browser-es-module-loader.js";
+            document.head.appendChild(loader);
+        });
+    </script>
+
+    <script type="module" crossorigin="anonymous">
+        import * as SpiceHtml5 from './src/main.js';
+
+        var host = null, port = null;
+        var sc;
+
+        function send_ctrl_alt_del() {
+            SpiceHtml5.sendCtrlAltDel(sc);
+        }
+
+        // This function extracts the value of one variable from the
+        // query string. If the variable isn't defined in the URL
+        // it returns the default value instead.
+        function readQueryVariable(name, defaultValue) {
+            // A URL with a query parameter can look like this:
+            // https://www.example.com?myqueryparam=myvalue
+            //
+            // Note that we use location.href instead of location.search
+            // because Firefox < 53 has a bug w.r.t location.search
+            const re = new RegExp('.*[?&]' + name + '=([^&#]*)'),
+                match = document.location.href.match(re);
+
+            if (match) {
+                // We have to decode the URL since want the cleartext value
+                return decodeURIComponent(match[1]);
+            }
+
+            return defaultValue;
+        }
+
+        function fullScreen() {
+            const elem = document.getElementById('spice-area');
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE11 */
+                elem.msRequestFullscreen();
+            }
+        }
+
+        document.getElementById('sendCtrlAltDelButton').onclick = send_ctrl_alt_del;
+        document.getElementById('fullScreen').onclick = fullScreen;
+
+        function spice_error(e) {
+            disconnect();
+            setTimeout(() => {
+                connect();
+            }, 1000);
+        }
+
+        function connect() {
+            if (sc) {
+                sc.stop();
+            }
+
+            const password = readQueryVariable('password');
+            const uri = `${window.location.protocol == 'https:' ? 'wss' : 'ws'}://${window.location.host}/api/vms/${readQueryVariable('vm')}/spicews`;
+
+            try {
+                sc = new SpiceHtml5.SpiceMainConn({ uri: uri, screen_id: "spice-screen", password: password, onerror: spice_error, onagent: agent_connected, });
+                setTimeout(() => {
+                    resize();
+                }, 1000)
+            }
+            catch (e) {
+                alert(e.toString());
+                disconnect();
+            }
+
+        }
+
+        function disconnect() {
+            console.log(">> disconnect");
+            if (sc) {
+                sc.stop();
+            }
+            if (window.File && window.FileReader && window.FileList && window.Blob) {
+                var spice_xfer_area = document.getElementById('spice-xfer-area');
+                if (spice_xfer_area != null) {
+                    document.getElementById('spice-area').removeChild(spice_xfer_area);
+                }
+                document.getElementById('spice-area').removeEventListener('dragover', SpiceHtml5.handle_file_dragover, false);
+                document.getElementById('spice-area').removeEventListener('drop', SpiceHtml5.handle_file_drop, false);
+            }
+            console.log("<< disconnect");
+        }
+
+        function resize() { // todo: fix this
+            /*document.getElementById('spice-screen').style.maxWidth = '100%';
+            document.getElementById('spice-screen').style.maxHeight = '100%';
+            document.getElementById('spice-screen').style.minHeight = '100%';
+            /*document.getElementById('spice_surface_0').style.maxWidth = '100%';
+            document.getElementById('spice_surface_0').style.maxHeight = '100%';
+            document.getElementById('spice_surface_0').style.minHeight = '100%';*/
+        }
+
+        window.addEventListener('resize', resize);
+
+        function agent_connected(sc) {
+            console.log(">> agent_connected");
+            if (window.File && window.FileReader && window.FileList && window.Blob) {
+                var spice_xfer_area = document.createElement("div");
+                spice_xfer_area.setAttribute('id', 'spice-xfer-area');
+                document.getElementById('spice-area').appendChild(spice_xfer_area);
+                document.getElementById('spice-area').addEventListener('dragover', SpiceHtml5.handle_file_dragover, false);
+                document.getElementById('spice-area').addEventListener('drop', SpiceHtml5.handle_file_drop, false);
+            }
+            else {
+                console.log("File API is not supported");
+            }
+        }
+
+        connect();
+    </script>
+
+</head>
+
+<body>
+    <div id="top_bar">
+        <div id="fullScreen">Full Screen</div>
+        <div id="status">Spice Viewer</div>
+        <div id="sendCtrlAltDelButton">Send CtrlAltDel</div>
+    </div>
+
+    <div id="spice-area">
+        <div id="spice-screen" class="spice-screen"></div>
+    </div>
+</body>
+
+</html>
