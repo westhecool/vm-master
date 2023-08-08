@@ -25,7 +25,7 @@ def make_mac():
     return ':'.join(map(lambda x: "%02x" % x, mac))
 
 
-def make_domain_xml(data):
+def make_domain_xml(data, name):
     def getboot():
         d = ""
         for x in data["os"]["boot"]:
@@ -94,7 +94,7 @@ def make_domain_xml(data):
         return d
     d = f"""
     <domain type="kvm">
-        <name>{data["name"]}</name>
+        <name>{name}</name>
         <metadata>
             <madeby>VM Master</madeby>
         </metadata>
@@ -227,7 +227,7 @@ def make_and_start_vm(client, name):
     f = open("./data/vms/" + name, "w")
     f.write(json.dumps(d))
     f.close()
-    client.defineXML(make_domain_xml(d)).create()
+    client.defineXML(make_domain_xml(d, name)).create()
 
 
 def convert_seconds(seconds):
@@ -280,10 +280,10 @@ def mark_vm_as_stopped(name):
     f.close()
 
 
-def make_network_xml(d):
+def make_network_xml(d, name):
     return f"""
     <network>
-    <name>{d["name"]}</name>
+    <name>{name}</name>
     <bridge name="{d["iface"]}"/>
     <forward mode="nat"/>
     <forwarder addr="{d["nameservers"][0]}"/>
@@ -316,7 +316,7 @@ def boot():
         f = open(config.datadir + "/networks/" + net)
         d = json.loads(f.read())
         f.close()
-        client.networkCreateXML(make_network_xml(d))
+        client.networkCreateXML(make_network_xml(d, net))
     for vm in os.listdir(config.datadir + "/vms"): # auto start VMs that where not stopped by user
         f = open(config.datadir + "/vms/" + vm)
         d = json.loads(f.read())
@@ -334,7 +334,7 @@ def boot():
                     pass
             except:
                 pass
-            client.createXML(make_domain_xml(d))
+            client.createXML(make_domain_xml(d, vm))
             d["state"] = "running"
             d["time"] = time.time()
             f = open(config.datadir + "/vms/" + vm, "w")

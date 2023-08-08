@@ -115,7 +115,6 @@ async def newvm():
                                 f = open(vmmconfig.datadir + "/templates/1")
                                 d = json.loads(f.read())
                                 f.close()
-                                d["name"] = form["name"]
                                 d["devices"]["networks"][0]["mac"] = core.make_mac()
                                 d["devices"]["disks"][0]["source"] = disk
                                 d["devices"]["disks"][1]["source"] = form["iso"]
