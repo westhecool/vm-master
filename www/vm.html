@@ -136,6 +136,10 @@
                     <label class="form-label">Source network</label>
                     <select class="form-select" id="edit-network-source"></select>
                 </div>
+                <div class="mb-3">
+                    <label class="form-label">Network card model</label>
+                    <select class="form-select" id="edit-network-model"></select>
+                </div>
                 <label class="form-label">Inbound limits</label>
                 <div class="mb-3">
                     <label class="form-label">Average (In KB/s)</label>
@@ -345,6 +349,12 @@
                         networks.forEach((network) => {
                             document.getElementById("edit-network-source").innerHTML += `<option ${network == data.source.network ? "selected" : ""} value="${network}">${network}</option>`
                         });
+                        document.getElementById("edit-network-model").innerHTML = `
+                        <option ${data.model == "e1000e" ? "selected" : ""} value="e1000e">e1000e (recommended)</option>
+                        <option ${data.model == "e1000" ? "selected" : ""} value="e1000">e1000</option>
+                        <option ${data.model == "rtl8139" ? "selected" : ""} value="rtl8139">rtl8139</option>
+                        <option ${data.model == "virtio" ? "selected" : ""} value="virtio">virtio</option>
+                        `;
                         document.getElementById("edit-network-inbound-average").value = data.bandwidth.inbound.average;
                         document.getElementById("edit-network-inbound-peak").value = data.bandwidth.inbound.peak;
                         document.getElementById("edit-network-inbound-burst").value = data.bandwidth.inbound.burst;
@@ -356,6 +366,7 @@
                             fetch(`/api/vms/{{ vm_name | safe }}/network/${network}`).then((res) => res.json()).then((data) => {
                                 data.mac = document.getElementById("edit-network-mac").value;
                                 data.source.network = document.getElementById("edit-network-source").value;
+                                data.model = document.getElementById("edit-network-model").value;
                                 data.bandwidth.inbound.average = document.getElementById("edit-network-inbound-average").value;
                                 data.bandwidth.inbound.peak = document.getElementById("edit-network-inbound-peak").value;
                                 data.bandwidth.inbound.burst = document.getElementById("edit-network-inbound-burst").value;
@@ -429,7 +440,7 @@
                     data2.append("config", JSON.stringify(data));
                     // POST the config to the server using fetch and form-data
                     fetch("/api/vms/{{ vm_name | safe }}/config", {
-                        method: 'post',
+                        method: "post",
                         body: data2,
                     }).then(async (res) => {
                         res.status === 200 ? notify("Successfully updated VM") : notify("Failed to update VM: " + res.text(), "red");
@@ -439,7 +450,7 @@
                 }).catch((err) => {
                     notify("Failed to update VM", "red");
                 });
-                document.getElementById('edit-div').style.display = 'none';
+                document.getElementById("edit-div").style.display = "none";
                 closeOverlay();
             }
             function updateBoot(type, checked) {
@@ -548,7 +559,7 @@
                 var b = Math.floor(Math.random() * 256);
 
                 // Create a CSS color string using the random values
-                var color = 'rgb(' + r + ', ' + g + ', ' + b + ')';
+                var color = "rgb(" + r + ", " + g + ", " + b + ")";
 
                 return color;
             }
@@ -560,27 +571,27 @@
             })()*/
 
             function formatBytes(bytes, decimals = 2) {
-                if (!+bytes) return '0 Bytes'
+                if (!+bytes) return "0 Bytes"
 
                 const k = 1024
                 const dm = decimals < 0 ? 0 : decimals
-                const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
+                const sizes = ["Bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"]
 
                 const i = Math.floor(Math.log(bytes) / Math.log(k))
 
                 return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
             }
-            var running = true;
+            var state = "running";
             function updateConsole() {
                 //const value = document.getElementById("console-select").value;
-                if (running) {
+                if (state == "running") {
                     //if (value == "vnc") {
-                    document.getElementById("consoleContainer").innerHTML = `<iframe style="height: 40rem;width: 50rem;" id="screen" src="/files/novnc/vnc.html?vm={{ vm_name | safe }}&password=${encodeURIComponent("{{ vnc_password }}")}" allow="fullscreen"></iframe>`;
+                    document.getElementById("consoleContainer").innerHTML = `<iframe style="height: 40rem;width: 50rem;" id="screen" src="/api/vms/{{ vm_name | safe }}/vncurl" allow="fullscreen"></iframe>`;
                     //} else if (value == "serial") {
-                    //    document.getElementById("consoleContainer").innerHTML = 'empty';
+                    //    document.getElementById("consoleContainer").innerHTML = "empty";
                     //}
                 } else {
-                    document.getElementById("consoleContainer").innerHTML = 'VM Offline';
+                    document.getElementById("consoleContainer").innerHTML = "VM Offline";
                 }
             }
             updateConsole();
@@ -589,7 +600,7 @@
             var disk_stats = [];
             function update() {
                 fetch("/api/vms/{{ vm_name | safe }}").then((response) => response.json()).then((data) => {
-                    document.getElementById("on").innerHTML = "{{ vm_name | safe }}: " + (data.running ? "RUNNING" : "STOPPED");
+                    document.getElementById("on").innerHTML = "{{ vm_name | safe }}: " + (data.state == "running" ? "RUNNING" : "STOPPED");
                     document.getElementById("time").innerHTML = "for " + data.time;
                     document.getElementById("networks").innerHTML = "";
                     data.networks.forEach((network, index) => {
@@ -599,10 +610,11 @@
                             <p>
                                 MAC: ${network.mac}<br>
                                 Source: ${network.source.network}<br>
+                                Model: ${network.model}<br>
                                 <a id="network-info-${network.mac.replace(/:/g, "")}"><b>NOT CONNECTED</b></a>
                             </p>
-                            <button onclick="editNetwork('${network.mac}')" class="btn btn-success" ${data.running ? 'disabled' : ''}>Edit</button>
-                            <button onclick="deleteNetwork('${network.mac}')" class="btn btn-danger" ${data.running ? 'disabled' : ''}>Delete</button>
+                            <button onclick="editNetwork('${network.mac}')" class="btn btn-success" ${data.state == "running" ? "disabled" : ""}>Edit</button>
+                            <button onclick="deleteNetwork('${network.mac}')" class="btn btn-danger" ${data.state == "running" ? "disabled" : ""}>Delete</button>
                         </div>`;
                     });
                     document.getElementById("disks").innerHTML = "";
@@ -618,11 +630,11 @@
                                 Used: ${formatBytes(disk.used)}<br>
                                 <a id="disk-info-${index}"></a>
                             </p>
-                            <button onclick="editDisk('${index}')" class="btn btn-success" ${data.running ? 'disabled' : ''}>Edit</button>
-                            <button onclick="deleteDisk('${index}')" class="btn btn-danger" ${data.running ? 'disabled' : ''}>Delete</button>
+                            <button onclick="editDisk('${index}')" class="btn btn-success" ${data.state == "running" ? "disabled" : ""}>Edit</button>
+                            <button onclick="deleteDisk('${index}')" class="btn btn-danger" ${data.state == "running" ? "disabled" : ""}>Delete</button>
                         </div>`;
                     });
-                    if (data.running) {
+                    if (data.state == "running") {
                         document.getElementById("start-button").setAttribute("disabled", true);
                         document.getElementById("stop-button").removeAttribute("disabled");
                         document.getElementById("reboot-button").removeAttribute("disabled");
@@ -697,10 +709,10 @@
                         document.getElementById("memory-div").style.display = "none";
                         document.getElementById("cpu-div").style.display = "none";
                     }
-                    if (data.running != running) {
-                        running = data.running;
+                    if (data.state != state) {
+                        state = data.state;
                         updateConsole();
-                        if (running) {
+                        if (state == "running") {
                             Array.from(document.getElementsByClassName("disabled-while-running")).forEach(element => {
                                 element.setAttribute("disabled", true);
                             });

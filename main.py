@@ -58,7 +58,7 @@ app = Quart(__name__)
 client = libvirt.open("qemu:///system")
 
 
-@app.route("/")
+@app.route("/", methods=["GET"])
 async def index():
     if core.is_authenticated(request.cookies.get("login")):
         f = open("www/index.html")
@@ -175,7 +175,7 @@ async def newvm():
         return redirect("/login")
 
 
-@app.route("/files/<path:path>")
+@app.route("/files/<path:path>", methods=["GET"])
 async def files(path):
     if os.path.isfile("./www/" + path):
         return await send_file("./www/" + path)
@@ -183,15 +183,12 @@ async def files(path):
         return "File not found", 404
 
 
-@app.route("/vms/<vm_name>")
+@app.route("/vms/<vm_name>", methods=["GET"])
 async def vm(vm_name):
     if core.is_authenticated(request.cookies.get("login")):
         if os.path.isfile(vmmconfig.datadir + "/vms/" + vm_name):
             f = open("www/vm.html")
             d = f.read()
-            f.close()
-            f = open(vmmconfig.datadir + "/vms/" + vm_name)
-            d2 = json.loads(f.read())
             f.close()
             f = open("www/nav.html")
             nav = f.read()
@@ -202,9 +199,6 @@ async def vm(vm_name):
             return await render_template_string(
                 d,
                 vm_name=vm_name,
-                vnc_password=d2["devices"]["graphics"]["vnc"]["password"].replace(
-                    '"', '\\"'
-                ),
                 footer=footer,
                 nav=nav,
             )
@@ -255,14 +249,14 @@ async def login():
     )
 
 
-@app.route("/logout")
+@app.route("/logout", methods=["GET"])
 async def logout():
     resp = await make_response(redirect("/login"))
     resp.set_cookie("login", "", expires=0)
     return resp
 
 
-@app.route("/api/vms")
+@app.route("/api/vms", methods=["GET"])
 def api_vms():
     if core.is_authenticated(request.cookies.get("login")):
         return jsonify(os.listdir(vmmconfig.datadir + "/vms"))
@@ -270,7 +264,7 @@ def api_vms():
         return "Unauthorized", 403
 
 
-@app.route("/api/networks")
+@app.route("/api/networks", methods=["GET"])
 def api_networks():
     if core.is_authenticated(request.cookies.get("login")):
         return jsonify(os.listdir(vmmconfig.datadir + "/networks"))
@@ -290,7 +284,7 @@ def api_vm_delete(vm_name):
         return "Unauthorized", 403
 
 
-@app.route("/api/vms/<vm_name>")
+@app.route("/api/vms/<vm_name>", methods=["GET"])
 def api_vm(vm_name):
     if core.is_authenticated(request.cookies.get("login")):
         if os.path.isfile(vmmconfig.datadir + "/vms/" + vm_name):
@@ -312,12 +306,12 @@ def api_vm(vm_name):
                     disk["used"] = d3["actual-size"]
                 except Exception as e:
                     print(e)
+            d["state"] = d2["state"]
             d["disks"] = d2["devices"]["disks"]
             d["networks"] = d2["devices"]["networks"]
-            d["running"] = core.vm_is_running(client, vm_name)
             d["time_raw"] = int(time.time() - d2["time"])
             d["time"] = core.convert_seconds(d["time_raw"])
-            if d["running"]:
+            if d["state"] == "running":
                 vm = client.lookupByName(vm_name)
                 d["blockStats"] = []
                 i = 0
@@ -345,7 +339,7 @@ def api_vm(vm_name):
         return "Unauthorized", 403
 
 
-@app.route("/api/vms/<vm_name>/<action>")
+@app.route("/api/vms/<vm_name>/<action>", methods=["GET"]) # power operations
 def vm_action(vm_name, action):
     if core.is_authenticated(request.cookies.get("login")):
         if os.path.isfile(vmmconfig.datadir + "/vms/" + vm_name):
@@ -629,6 +623,22 @@ async def vm_disk_set(vm_name, disk):
     else:
         return "Unauthorized", 403
 
+@app.route("/api/vms/<vm_name>/vncurl", methods=["GET"])
+async def vnc_url(vm_name):
+    if core.is_authenticated(request.cookies.get("login")):
+        if os.path.isfile(vmmconfig.datadir + "/vms/" + vm_name):
+            f = open(vmmconfig.datadir + "/vms/" + vm_name)
+            d = json.loads(f.read())
+            f.close()
+            password = d["devices"]["graphics"]["vnc"]["password"]
+            resp = await make_response(f"/files/novnc/vnc.html?vm={vm_name}&password={password}")
+            resp.status_code = 302
+            resp.headers["Location"] = f"/files/novnc/vnc.html?vm={vm_name}&password={password}"
+            return resp
+        else:
+            return "Not found", 404
+    else:
+        return "Unauthorized", 403
 
 async def vnc_sending(reader, writer):
     while True:

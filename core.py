@@ -103,7 +103,7 @@ def make_domain_xml(data):
         <on_crash>restart</on_crash>
         <os>
             <type arch="{data["os"]["arch"]}" machine="{data["os"]["machine"]}">hvm</type>
-    {getboot()}
+            {getboot()}
             {getbootmenu()}
             <smbios mode="sysinfo"/>
             <bios useserial="yes" rebootTimeout="0"/>
@@ -119,7 +119,7 @@ def make_domain_xml(data):
             <vmport state="off"/>
         </features>
         <sysinfo type="smbios">
-    {data["os"]["bios"]["sysinfo"]}
+            {data["os"]["bios"]["sysinfo"]}
         </sysinfo>
         <memory unit="M">{data["memory"]}</memory>
         <vcpu placement="static">{getvcpus()}</vcpu>
@@ -140,8 +140,8 @@ def make_domain_xml(data):
                 <vendor>{data["cpu"]["vendor"]}</vendor>
                 <topology sockets="{data["cpu"]["sockets"]}" dies="{data["cpu"]["dies"]}" cores="{data["cpu"]["cores"]}" threads="{data["cpu"]["threads"]}"/>
             </cpu>
-    {getnetworks()}
-    {getdisks()}
+            {getnetworks()}
+            {getdisks()}
             <graphics type="vnc" port="{data["devices"]["graphics"]["vnc"]["port"]}" sharePolicy="allow-exclusive" {ifelse(data["devices"]["graphics"]["vnc"]["password"], f"passwd='{data['devices']['graphics']['vnc']['password']}'", "")}>
                 <listen type="address" address="{data["devices"]["graphics"]["vnc"]["host"]}"/>
                 <image compression="off"/>
@@ -317,7 +317,7 @@ def boot():
         d = json.loads(f.read())
         f.close()
         client.networkCreateXML(make_network_xml(d))
-    for vm in os.listdir(config.datadir + "/vms"):
+    for vm in os.listdir(config.datadir + "/vms"): # auto start VMs that where not stopped by user
         f = open(config.datadir + "/vms/" + vm)
         d = json.loads(f.read())
         f.close()
@@ -339,3 +339,4 @@ def boot():
             d["time"] = time.time()
             f = open(config.datadir + "/vms/" + vm, "w")
             f.write(json.dumps(d))
+
