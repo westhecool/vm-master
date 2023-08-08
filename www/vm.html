@@ -32,7 +32,8 @@
                         <br>
                     </div>
                     <button onclick="edit()" class="btn btn-success disabled-while-running" disabled>Edit</button>
-                    <button onclick="deleteVM()" class="btn btn-danger disabled-while-running" disabled>Delete VM</button>
+                    <button onclick="deleteVM()" class="btn btn-danger disabled-while-running" disabled>Delete
+                        VM</button>
                     <br><br>
                     <p>Power Options:</p>
                     <button onclick="start()" class="btn btn-primary" id="start-button">Start</button>
@@ -77,11 +78,13 @@
                 style="display: none;padding: 10px;background-color: #1b1d21;z-index: 2;position: absolute;top: 70%;left: 50%;transform: translate(-50%, -50%);width: 20rem;"
                 class="rounded-3 shadow">
                 <h3>Edit disk</h3>
-                <label class="form-label">Device</label>
-                <select class="form-select" id="edit-disk-device"></select>
+                <div class="mb-3">
+                    <label class="form-label">Device</label>
+                    <select class="form-select" id="edit-disk-device"></select>
+                </div>
                 <div class="mb-3">
                     <label class="form-label">Format (Format of the source disk)</label>
-                    <input class="form-control" id="edit-disk-format">
+                    <select class="form-select" id="edit-disk-format"></select>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Source (Path of the source disk)</label>
@@ -89,7 +92,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Bus</label>
-                    <input class="form-control" id="edit-disk-bus">
+                    <select class="form-select" id="edit-disk-bus"></select>
                 </div>
                 <label class="form-label">IO limits</label>
                 <div class="mb-3">
@@ -129,9 +132,10 @@
                     <label class="form-label">MAC</label>
                     <input class="form-control" id="edit-network-mac">
                 </div>
-                <label class="form-label">Source network</label>
-                <select class="form-select" id="edit-network-source">
-                </select>
+                <div class="mb-3">
+                    <label class="form-label">Source network</label>
+                    <select class="form-select" id="edit-network-source"></select>
+                </div>
                 <label class="form-label">Inbound limits</label>
                 <div class="mb-3">
                     <label class="form-label">Average (In KB/s)</label>
@@ -234,7 +238,7 @@
             }
             function addDisk() {
                 fetch(`/api/vms/{{ vm_name | safe }}/add_disk`).then((res) => res.json()).then((data) => {
-                   editDisk(data.id); 
+                    editDisk(data.id);
                 });
             }
             function editDisk(disk) {
@@ -243,9 +247,17 @@
                     <option ${data.device == "cdrom" ? "selected" : ""} value="cdrom">cdrom</option>
                     <option ${data.device == "disk" ? "selected" : ""} value="disk">disk</option>
                     `;
-                    document.getElementById("edit-disk-format").value = data.format;
+                    document.getElementById("edit-disk-format").innerHTML = `
+                    <option ${data.format == "raw" ? "selected" : ""} value="raw">raw</option>
+                    <option ${data.format == "qcow2" ? "selected" : ""} value="qcow2">qcow2</option>
+                    `;
                     document.getElementById("edit-disk-source").value = data.source;
-                    document.getElementById("edit-disk-bus").value = data.bus;
+                    document.getElementById("edit-disk-bus").innerHTML = `
+                    <option ${data.bus == "sata" ? "selected" : ""} value="sata">sata</option>
+                    <option ${data.bus == "scsi" ? "selected" : ""} value="scsi">scsi</option>
+                    <option ${data.bus == "usb" ? "selected" : ""} value="usb">usb</option>
+                    <option ${data.bus == "virtio" ? "selected" : ""} value="virtio">virtio</option>
+                    `;
                     document.getElementById("edit-disk-total-bytes-sec").value = data.iotune.total_bytes_sec;
                     document.getElementById("edit-disk-read-bytes-sec").value = data.iotune.read_bytes_sec;
                     document.getElementById("edit-disk-write-bytes-sec").value = data.iotune.write_bytes_sec;
@@ -584,7 +596,11 @@
                         document.getElementById("networks").innerHTML += `
                         <div class="col">
                             <h5>Network ${index}: </h5>
-                            <p>MAC: ${network.mac}<br>Source: ${network.source.network}<br><a id="network-info-${network.mac.replace(/:/g, "")}"><b>NOT CONNECTED</b></a></p>
+                            <p>
+                                MAC: ${network.mac}<br>
+                                Source: ${network.source.network}<br>
+                                <a id="network-info-${network.mac.replace(/:/g, "")}"><b>NOT CONNECTED</b></a>
+                            </p>
                             <button onclick="editNetwork('${network.mac}')" class="btn btn-success" ${data.running ? 'disabled' : ''}>Edit</button>
                             <button onclick="deleteNetwork('${network.mac}')" class="btn btn-danger" ${data.running ? 'disabled' : ''}>Delete</button>
                         </div>`;
@@ -594,7 +610,14 @@
                         document.getElementById("disks").innerHTML += `
                         <div class="col">
                             <h5>Disk ${index}: </h5>
-                            <p>Type: ${disk.device}<br>Format: ${disk.format}<br>Source: ${disk.source}<br>Size: ${formatBytes(disk.size)}<br>Used: ${formatBytes(disk.used)}<br><a id="disk-info-${index}"></a></p>
+                            <p>
+                                Type: ${disk.device}<br>
+                                Format: ${disk.format}<br>
+                                Bus: ${disk.bus}<br>
+                                Source: ${disk.source}<br>Size: ${formatBytes(disk.size)}<br>
+                                Used: ${formatBytes(disk.used)}<br>
+                                <a id="disk-info-${index}"></a>
+                            </p>
                             <button onclick="editDisk('${index}')" class="btn btn-success" ${data.running ? 'disabled' : ''}>Edit</button>
                             <button onclick="deleteDisk('${index}')" class="btn btn-danger" ${data.running ? 'disabled' : ''}>Delete</button>
                         </div>`;

@@ -111,7 +111,7 @@ async def newvm():
                             "/disks/" + form["name"] + ".qcow2"
                         try:
                             disksize = form["disksize"].replace('"', '\\"')
-                            if (subprocess.run(["qemu-img", "create", "-f", "qcow2", disk, disksize]).returncode == 0):
+                            if (subprocess.run(["qemu-img", "create", "-f", "qcow2", disk, disksize + "G"]).returncode == 0):
                                 f = open(vmmconfig.datadir + "/templates/1")
                                 d = json.loads(f.read())
                                 f.close()
@@ -322,8 +322,11 @@ def api_vm(vm_name):
                 d["blockStats"] = []
                 i = 0
                 for disk in d2["devices"]["disks"]:
+                    devtype = "sd"
+                    if disk["bus"] == "virtio":
+                        devtype = "vd"
                     d["blockStats"].append(vm.blockStats(
-                        "sd" + string.ascii_lowercase[i]))
+                        devtype + string.ascii_lowercase[i]))
                     i += 1
                 # d["CPUStats"] = vm.getCPUStats(total=False)
                 d["CPUStats_total"] = vm.getCPUStats(total=True)
@@ -491,7 +494,7 @@ def vm_disk_add(vm_name):
             f = open(vmmconfig.datadir + "/vms/" + vm_name, "w")
             f.write(json.dumps(d))
             f.close()
-            return jsonify({"id": len(d["devices"]["disks"] - 1)})
+            return jsonify({"id": len(d["devices"]["disks"]) - 1})
         else:
             return "Not found", 404
     else:
