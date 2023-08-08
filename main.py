@@ -52,6 +52,8 @@ atexit.register(exit_handler)
 
 threading.Thread(target=core.boot).start()
 
+threading.Thread(target=core.check_if_vm_stopped).start()
+
 cwd = os.getcwd()
 app = Quart(__name__)
 

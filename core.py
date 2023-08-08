@@ -340,3 +340,15 @@ def boot():
             f = open(config.datadir + "/vms/" + vm, "w")
             f.write(json.dumps(d))
 
+
+def check_if_vm_stopped():
+    client = libvirt.open("qemu:///system")
+    while True:
+        for vm in os.listdir(config.datadir + "/vms"):
+            f = open(config.datadir + "/vms/" + vm)
+            d = json.loads(f.read())
+            f.close()
+            if d["state"] == "running":
+                if not vm_is_running(client, vm):
+                    mark_vm_as_stopped(vm)
+        time.sleep(1) # add a delay to avoid high resource usage
