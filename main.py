@@ -414,7 +414,7 @@ def vm_action(vm_name, action):
 
 
 @app.route("/api/vms/<vm_name>/config", methods=["GET"])
-async def vm_config(vm_name):
+def vm_config(vm_name):
     if core.is_authenticated(request.cookies.get("login")):
         if os.path.isfile(vmmconfig.datadir + "/vms/" + vm_name):
             f = open(vmmconfig.datadir + "/vms/" + vm_name)
@@ -507,7 +507,7 @@ def vm_disk_add(vm_name):
 
 
 @app.route("/api/vms/<vm_name>/network/<network>", methods=["GET"])
-async def vm_network(vm_name, network):
+def vm_network(vm_name, network):
     if core.is_authenticated(request.cookies.get("login")):
         if os.path.isfile(vmmconfig.datadir + "/vms/" + vm_name):
             net = None
@@ -528,7 +528,7 @@ async def vm_network(vm_name, network):
 
 
 @app.route("/api/vms/<vm_name>/network/<network>", methods=["DELETE"])
-async def vm_network_delete(vm_name, network):
+def vm_network_delete(vm_name, network):
     if core.is_authenticated(request.cookies.get("login")):
         if os.path.isfile(vmmconfig.datadir + "/vms/" + vm_name):
             net = None
@@ -709,7 +709,6 @@ async def spice_receiving(reader, writer):
     while True:
         data = await websocket.receive()
         writer.write(data)
-
 
 @app.websocket("/api/vms/<vm_name>/spicews")
 async def spice_ws(vm_name):
